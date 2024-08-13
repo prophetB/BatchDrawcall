@@ -7,9 +7,12 @@ out vec2 TexCoords;
 
 uniform mat4 projection;
 uniform mat4 view;
-
+uniform mat4 model;
 void main()
 {
     TexCoords = aTexCoords;
-    gl_Position = projection * view * aInstanceMatrix * vec4(aPos, 1.0f); 
+    //普通渲染
+    gl_Position =projection * view *model* vec4(aPos, 1.0f); 
+    //实例和间接渲染
+   // gl_Position =projection * view * aInstanceMatrix* vec4(aPos, 1.0f); 
 }

@@ -30,7 +30,15 @@ bool firstMouse = true;
 // timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
-
+//间接索引渲染结构体
+struct DrawElementsIndirectCommand
+{
+    GLuint  elementCount;
+    GLuint  instanceCount;
+    GLuint  firstElement;
+    GLuint  baseVertex;
+    GLuint  baseInstance;
+};
 int main()
 {
     // glfw: initialize and configure
@@ -64,7 +72,7 @@ int main()
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
-
+    glfwSwapInterval(0);
     // configure global opengl state
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
@@ -81,7 +89,7 @@ int main()
 
     // generate a large list of semi-random model transformation matrices
     // ------------------------------------------------------------------
-    unsigned int amount = 100000;
+    const unsigned int amount = 40000;
     glm::mat4* modelMatrices;
     modelMatrices = new glm::mat4[amount];
     srand(static_cast<unsigned int>(glfwGetTime())); // initialize random seed
@@ -119,6 +127,20 @@ int main()
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
     glBufferData(GL_ARRAY_BUFFER, amount * sizeof(glm::mat4), &modelMatrices[0], GL_STATIC_DRAW);
 
+
+    // 创建绘制命令缓冲区
+    DrawElementsIndirectCommand drawCmd[amount];
+    for (int i = 0; i < amount; ++i) {
+        drawCmd[i].elementCount = static_cast<unsigned int>(rock.meshes[0].indices.size()); // 需要获取每次绘制的顶点数
+        drawCmd[i].instanceCount = 1; // 每个命令绘制一个实例
+        drawCmd[i].firstElement = 0;
+        drawCmd[i].baseVertex = 0;
+        drawCmd[i].baseInstance = i; // 每个命令使用不同的实例
+    }
+    unsigned int drawCmdBuffer;
+    glCreateBuffers(1, &drawCmdBuffer);
+    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, drawCmdBuffer);
+    glBufferData(GL_DRAW_INDIRECT_BUFFER, sizeof(drawCmd), drawCmd, GL_STATIC_DRAW);
     // set transformation matrices as an instance vertex attribute (with divisor 1)
     // note: we're cheating a little by taking the, now publicly declared, VAO of the model's mesh(es) and adding new vertexAttribPointers
     // normally you'd want to do this in a more organized fashion, but for learning purposes this will do.
@@ -144,17 +166,25 @@ int main()
 
         glBindVertexArray(0);
     }
-
+    double lastTime = glfwGetTime();
+    int frameCount = 0;
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
     {
-        // per-frame time logic
-        // --------------------
-        float currentFrame = static_cast<float>(glfwGetTime());
-        deltaTime = currentFrame - lastFrame;
-        lastFrame = currentFrame;
+        double currentTime = glfwGetTime();
+        frameCount++;
 
+        if (currentTime - lastTime >= 1.0) {
+            double fps = frameCount / (currentTime - lastTime);
+
+            std::stringstream ss;
+            ss << "FPS: " << fps;
+            glfwSetWindowTitle(window, ss.str().c_str());
+
+            frameCount = 0;
+            lastTime = currentTime;
+        }
         // input
         // -----
         processInput(window);
@@ -167,15 +197,17 @@ int main()
         // configure transformation matrices
         glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
         glm::mat4 view = camera.GetViewMatrix();
+        glm::mat4 model = glm::mat4(1.0f);
         asteroidShader.use();
         asteroidShader.setMat4("projection", projection);
         asteroidShader.setMat4("view", view);
+        asteroidShader.setMat4("model", model);
         planetShader.use();
         planetShader.setMat4("projection", projection);
         planetShader.setMat4("view", view);
 
         // draw planet
-        glm::mat4 model = glm::mat4(1.0f);
+    
         model = glm::translate(model, glm::vec3(0.0f, -3.0f, 0.0f));
         model = glm::scale(model, glm::vec3(4.0f, 4.0f, 4.0f));
         planetShader.setMat4("model", model);
@@ -187,12 +219,21 @@ int main()
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, rock.textures_loaded[0].id); 
         // note: we also made the textures_loaded vector public (instead of private) from the model class.
-        for (unsigned int i = 0; i < rock.meshes.size(); i++)
-        {
-            glBindVertexArray(rock.meshes[i].VAO);
-            glDrawElementsInstanced(GL_TRIANGLES, static_cast<unsigned int>(rock.meshes[i].indices.size()), GL_UNSIGNED_INT, 0, amount);
-            glBindVertexArray(0);
-        }
+        //切换不同的渲染方式
+        //1、直接渲染
+        //2、实例化渲染
+        //3、间接渲染
+            glBindVertexArray(rock.meshes[0].VAO);
+            for (int i = 0; i < amount; i++)
+            {
+                asteroidShader.setMat4("model", modelMatrices[i]);
+                glDrawArrays(GL_TRIANGLES, 0, static_cast<unsigned int>(rock.meshes[0].indices.size()));
+            }
+            //glDrawElementsInstanced(GL_TRIANGLES, static_cast<unsigned int>(rock.meshes[0].indices.size()), GL_UNSIGNED_INT, 0, amount);
+			//glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr, amount,0);
+           
+    	glBindVertexArray(0);
+
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
