@@ -23,22 +23,7 @@
 //}
 //
 //// 创建VBO和IBO
-//GLuint createVBOAndIBO(const std::vector<Vertex>& vertices, const std::vector<GLuint>& indices) {
-//    GLuint vbo, ibo;
-//    glGenBuffers(1, &vbo);
-//    glGenBuffers(1, &ibo);
-//
-//    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-//    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
-//
-//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-//    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
-//
-//    glBindBuffer(GL_ARRAY_BUFFER, 0);
-//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-//
-//    return ibo;
-//}
+
 //
 //// 创建VAO
 //GLuint createVAO(GLuint vbo) {

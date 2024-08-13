@@ -76,8 +76,8 @@ int main()
 
     // load models
     // -----------
-    Model rock(std::string("E:/bzyGitEnv/BatchDrawCall/BatchDrawCall/rocks/rock.obj"));
-    Model planet(std::string("E:/bzyGitEnv/BatchDrawCall/BatchDrawCall/planet/planet.obj"));
+    Model rock(std::string("rocks/rock.obj"));
+    Model planet(std::string("planet/planet.obj"));
 
     // generate a large list of semi-random model transformation matrices
     // ------------------------------------------------------------------
